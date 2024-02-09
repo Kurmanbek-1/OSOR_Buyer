@@ -8,7 +8,13 @@ storage = MemoryStorage()
 TOKEN = config('TOKEN')
 
 Admins = [995712956, ]
+Director = [6451475162, ]
+
+Developers = [995712956, ]
 
 bot = Bot(TOKEN)
 
 dp = Dispatcher(bot=bot, storage=storage)
+
+staff = []
+staff.append(995712956)
