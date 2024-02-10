@@ -120,11 +120,10 @@ async def cancel_reg(message: types.Message, state: FSMContext):
 
 def registration(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена", ignore_case=True), state="*")
-    dp.register_message_handler(cmd_start, commands=['зарегестрироваться_на_байерство_'], commands_prefix='_/')
+    dp.register_message_handler(cmd_start, commands=['become_buyer'], commands_prefix='_/')
     dp.register_message_handler(load_fullname, state=RegistrationStates.full_name)
     dp.register_message_handler(load_phone_number, state=RegistrationStates.phone_number)
     dp.register_message_handler(load_company_name, state=RegistrationStates.company_name)
-
     # Добавляем новые команды
     dp.register_message_handler(cmd_get_registered_users, commands=['Зарегестрированные'])
     dp.register_callback_query_handler(cmd_remove_user_callback, text_contains='remove_user')
