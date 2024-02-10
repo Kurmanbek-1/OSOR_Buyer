@@ -1,5 +1,6 @@
 from aiogram import Dispatcher, types
-from config import Admins, Director, staff
+from config import Admins, Director
+from staff_config import staff
 import buttons
 
 

@@ -4,8 +4,10 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Director
+from staff_config import staff
 import buttons
 from aiogram.dispatcher.filters import Text
+import os
 
 
 class RegistrationStates(StatesGroup):
@@ -56,16 +58,23 @@ async def load_company_name(message: types.Message, state: FSMContext):
 
     await message.answer(output_message)
 
-    # Добавление ID в файл config.py
-    with open('config.py', 'r') as config_file:
-        config_content = config_file.read()
+    new_id = message.from_user.id
+    if new_id not in staff:
+        staff.append(new_id)
 
-    with open('config.py', 'a') as config_file:
-        config_file.write(f"\nstaff.append({message.from_user.id})\n")
+        print(staff)
 
-    # Сохранение данных в файл
-    with open('reg.json', 'w') as file:
-        json.dump(registered_users, file)
+        # Обновление файла config.py
+        config_path = 'staff_config.py'
+
+        with open(config_path, 'w') as config_file:
+            config_file.write(f"staff = {staff}")
+
+        # Сохранение данных в файл (для registered_users)
+        with open('reg.json', 'w') as file:
+            json.dump(registered_users, file)
+    else:
+        await message.answer("Данный телеграм id уже существует в базе байеров")
 
 
 async def cmd_get_registered_users(message: types.Message):
