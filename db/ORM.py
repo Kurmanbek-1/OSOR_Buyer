@@ -11,6 +11,7 @@ async def create_tables():
             await connection.execute(sql_queries.CREATE_TABLE_PHOTO_OF_ORDERS)
             await connection.execute(sql_queries.CREATE_TABLE_REVIEW)
             await connection.execute(sql_queries.CREATE_TABLE_PHOTO_OF_REVIEWS)
+            await connection.execute(sql_queries.CREATE_TABLE_BAYERS)
 
             print("База данных успешно подключена и таблицы созданы")
         finally:

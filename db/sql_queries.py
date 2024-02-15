@@ -5,7 +5,6 @@ CREATE_TABLE_ORDER = '''
         article TEXT UNIQUE,
         company_name VARCHAR(255),
         bayer_datas TEXT,
-        bayer_link TEXT,
         category VARCHAR(255),
         price DECIMAL(10, 2)
     );
@@ -13,8 +12,8 @@ CREATE_TABLE_ORDER = '''
 
 ORDER_INSERT_QUERY = """
     INSERT INTO orders
-    (bayer_id, article_number, company_name, bayer_datas, bayer_link, category, price)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    (bayer_id, article_number, company_name, bayer_datas, category, price)
+    VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT DO NOTHING;
 """
 
@@ -38,7 +37,7 @@ CREATE_TABLE_REVIEW = '''
     CREATE TABLE IF NOT EXISTS reviews (
         id SERIAL PRIMARY KEY,
         article TEXT,
-        name_oreder TEXT,
+        name_order TEXT,
         name_bayer VARCHAR(255),
         text_review TEXT
     );
@@ -46,7 +45,7 @@ CREATE_TABLE_REVIEW = '''
 
 REVIEWS_INSERT_QUERY = """
     INSERT INTO reviews
-    (article, name_oreder, name_bayer, text_review)
+    (article, name_order, name_bayer, text_review)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING;
 """
@@ -63,5 +62,22 @@ REVIEW_PHOTO_INSERT_QUERY = """
     INSERT INTO photos_orders
     (review_id, photo)
     VALUES ($1, $2)
+    ON CONFLICT DO NOTHING;
+"""
+
+CREATE_TABLE_BAYERS = """
+    CREATE TABLE IF NOT EXISTS bayers (
+        id SERIAL PRIMARY KEY,
+        name_of_company VARCHAR(255),
+        phone VARCHAR(255),
+        fio TEXT,
+        telegramm_id TEXT UNIQUE
+    );
+"""
+
+BAYERS_INSERT_QUERY = """
+    INSERT INTO bayers
+    (name_of_company, phone, fio, telegramm_id)
+    VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING;
 """
