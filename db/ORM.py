@@ -16,3 +16,13 @@ async def create_tables():
             print("База данных успешно подключена и таблицы созданы")
         finally:
             await pool.release(connection)
+
+async def insert_bayers(name_of_company, phone, fio, telegramm_id):
+    async with pool.acquire() as connection:
+        values = (
+            name_of_company,
+            phone,
+            fio,
+            telegramm_id,
+        )
+        await connection.execute(sql_queries.BAYERS_INSERT_QUERY, *values)
