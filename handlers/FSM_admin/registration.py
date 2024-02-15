@@ -1,27 +1,24 @@
-import json
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import Director
-from staff_config import staff
 import buttons
 from aiogram.dispatcher.filters import Text
-import os
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from config import Director, bot
+
+user_id = None
+username = None
+fullname = None
 
 
 class RegistrationStates(StatesGroup):
     full_name = State()
     phone_number = State()
     company_name = State()
-
-
-# Загружаем данные из файла при запуске бота
-try:
-    with open('reg.json', 'r') as file:
-        registered_users = json.load(file)
-except FileNotFoundError:
-    registered_users = {}
+    submit = State()
+    process_receipt = State()
+    send_admin = State()
+    submit_admin = State()
 
 
 async def cmd_start(message: types.Message):
@@ -30,94 +27,98 @@ async def cmd_start(message: types.Message):
 
 
 async def load_fullname(message: types.Message, state: FSMContext):
-    full_name = message.text
-    await state.update_data(full_name=full_name)
+    async with state.proxy() as data:
+        data['full_name'] = message.text
     await message.answer("Отлично! Теперь введите свой номер телефона:")
     await RegistrationStates.next()
 
 
 async def load_phone_number(message: types.Message, state: FSMContext):
-    phone_number = message.text
-    await state.update_data(phone_number=phone_number)
+    async with state.proxy() as data:
+        data['phone_number'] = message.text
     await message.answer("Отлично! Теперь введите название своей компании:")
     await RegistrationStates.next()
 
 
-async def load_company_name(message: types.Message, state: FSMContext):
-    company_name = message.text
-    await state.update_data(company_name=company_name)
-    user_data = await state.get_data()
-    await state.finish()
+async def load_company(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['company_name'] = message.text
 
-    # Вывод данных
-    output_message = f"Спасибо за регистрацию!\n\n" \
-                     f"Ваши данные:\n" \
-                     f"ФИО: {user_data['full_name']}\n" \
-                     f"Номер телефона: {user_data['phone_number']}\n" \
-                     f"Название компании: {user_data['company_name']}"
-
-    await message.answer(output_message)
-
-    new_id = message.from_user.id
-    if new_id not in staff:
-        staff.append(new_id)
-
-        print(staff)
-
-        # Обновление файла config.py
-        config_path = 'staff_config.py'
-
-        with open(config_path, 'w') as config_file:
-            config_file.write(f"staff = {staff}")
-
-        # Сохранение данных в файл (для registered_users)
-        with open('reg.json', 'w') as file:
-            json.dump(registered_users, file)
-    else:
-        await message.answer("Данный телеграм id уже существует в базе байеров")
+    await message.answer(f"Данные регистрации!\n\n"
+                         f"Ваши данные:\n"
+                         f"ФИО: {data['full_name']}\n"
+                         f"Номер телефона: {data['phone_number']}\n"
+                         f"Название компании: {data['company_name']}")
+    await message.answer("Верно ?")
+    await RegistrationStates.next()
 
 
-async def cmd_get_registered_users(message: types.Message):
-    if message.from_user.id in Director:
-        if registered_users:
-            for user_id, user_data in registered_users.items():
-                # Вывод данных
-                output_message = (f"Сотрудник/Байер 🧑🏻‍💼👨🏼‍💼"
-                                  f"\n---------------------------------\n"
-                                  f"ID-телеграма: {user_id}\n"
-                                  f"ФИО: {user_data['full_name']}\n"
-                                  f"Номер телефона: {user_data['phone_number']}\n"
-                                  f"Название компании: {user_data['company_name']}"
-                                  f"\n---------------------------------\n")
+async def submit(message: types.Message, state: FSMContext):
+    if message.text == 'да':
+        global user_id
+        global fullname
+        global username
 
-                # Создаем кнопку удаления
-                inline_btn = InlineKeyboardButton('Удалить', callback_data=f'remove_user_{user_id}')
-                inline_kb = InlineKeyboardMarkup().add(inline_btn)
+        async with state.proxy() as data:
+            user_id = message.chat.id
+            fullname = message.chat.full_name
+            username = message.chat.username
 
-                await message.answer(output_message, reply_markup=inline_kb)
-        else:
-            await message.answer("Пока нет зарегистрированных пользователей.")
-    else:
-        await message.answer("У вас нет доступа к этой команде.")
+            await send_admin_data(data, state)
+
+            # Запись в базу
+
+            await message.answer("Отправлено на проверку администратору! ⏳", reply_markup=buttons.StartClient)
+            await state.finish()
+    elif message.text == 'нет':
+        await message.answer("Отменено!")
+        await state.finish()
 
 
-async def cmd_remove_user_callback(query: types.CallbackQuery):
-    user_id_to_remove = int(query.data.split('_')[-1])
-    removed_user_data = registered_users.pop(user_id_to_remove, None)
-    if removed_user_data:
-        output_message = (f"Пользователь удален из списка. ❌"
-                          f"\n---------------------------------\n")
-        output_message += f"ФИО: {removed_user_data['full_name']}\n"
-        output_message += f"Номер телефона: {removed_user_data['phone_number']}\n"
-        output_message += (f"Название компании: {removed_user_data['company_name']}"
-                           f"\n---------------------------------")
-        await query.message.edit_text(output_message)
+async def send_admin_data(data, state: FSMContext):
+    global fullname
+    global user_id
+    global username
 
-    else:
-        await query.message.edit_text(f"Пользователь с ID {user_id_to_remove} не найден в списке.")
+    if not username:
+        username = fullname
 
-    with open('reg.json', 'w') as file:
-        json.dump(registered_users, file)
+    async with state.proxy() as data:
+        data["user_id"] = user_id
+        data["user_name"] = f"@{username}"
+
+    inline_keyboard = InlineKeyboardMarkup(row_width=2)
+    button_yes = InlineKeyboardButton("Да✅", callback_data="button_yes")
+    button_no = InlineKeyboardButton("Нет❌", callback_data="button_no")
+    inline_keyboard.add(button_yes, button_no)
+
+    caption = (f"Поступил запрос от пользователя с ID {user_id} на байерство\n\n"
+               f"Ваши данные:\n"
+               f"ФИО: {data['full_name']}\n"
+               f"Номер телефона: {data['phone_number']}\n"
+               f"Название компании: {data['company_name']}")
+
+    for Admin in Director:
+        await bot.send_message(
+            chat_id=Admin,
+            text=caption, reply_markup=inline_keyboard)
+
+
+async def answer_yes(message: types.Message, state: FSMContext):
+    global user_id
+    await bot.send_message(user_id, text="Регистрация прошла успешно! ✅",
+                           reply_markup=buttons.StartStaff)
+
+    for Admin in Director:
+        await bot.send_message(chat_id=Admin, text='Подтверждено! ✅')
+
+
+async def answer_no(message: types.Message):
+    global user_id
+    await bot.send_message(user_id,
+                           text="Вам отказано! ❌", reply_markup=buttons.StartClient)
+    for Admin in Director:
+        await bot.send_message(chat_id=Admin, text='Отклонено! ❌')
 
 
 async def cancel_reg(message: types.Message, state: FSMContext):
@@ -132,7 +133,9 @@ def registration(dp: Dispatcher):
     dp.register_message_handler(cmd_start, commands=['become_buyer'], commands_prefix='_/')
     dp.register_message_handler(load_fullname, state=RegistrationStates.full_name)
     dp.register_message_handler(load_phone_number, state=RegistrationStates.phone_number)
-    dp.register_message_handler(load_company_name, state=RegistrationStates.company_name)
-    # Добавляем новые команды
-    dp.register_message_handler(cmd_get_registered_users, commands=['Зарегестрированные'])
-    dp.register_callback_query_handler(cmd_remove_user_callback, text_contains='remove_user')
+    dp.register_message_handler(submit, state=RegistrationStates.submit)
+
+    dp.register_message_handler(send_admin_data, state=RegistrationStates.send_admin)
+
+    dp.register_callback_query_handler(answer_yes, lambda call: call.data == "button_yes")
+    dp.register_callback_query_handler(answer_no, lambda call: call.data == "button_no")
