@@ -71,7 +71,7 @@ CREATE_TABLE_BAYERS = """
         name_of_company VARCHAR(255),
         phone VARCHAR(255),
         fio TEXT,
-        telegramm_id INTEGER UNIQUE
+        telegramm_id BIGINT UNIQUE
     );
 """
 

@@ -4,10 +4,11 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import buttons
-from config import Director, bot
+from config import Director, bot, Admins
 from staff_config import staff
 
-from db.ORM import insert_bayers
+from db.ORM import insert_bayers, check_telegramm_id_existence
+
 
 class RegistrationStates(StatesGroup):
     full_name = State()
@@ -18,9 +19,25 @@ class RegistrationStates(StatesGroup):
     send_admin = State()
     submit_admin = State()
 
+
 async def cmd_start(message: types.Message):
-    await message.answer("Привет! Для регистрации введите своё ФИО:", reply_markup=buttons.cancel_markup)
-    await RegistrationStates.full_name.set()
+    telegramm_id = message.from_user.id
+
+    if telegramm_id in Director:
+        await message.answer("Админы и Директора не могут стать байерами")
+
+    elif telegramm_id in Admins:
+        await message.answer("Админы и Директора не могут стать байерами")
+
+    else:
+        is_registered = await check_telegramm_id_existence(telegramm_id)
+
+        if is_registered:
+            await message.answer("Данный телеграмм аккаунт уже зарегистрирован.")
+        else:
+            await message.answer("Привет! Для регистрации введите своё ФИО:", reply_markup=buttons.cancel_markup)
+            await RegistrationStates.full_name.set()
+
 
 async def load_fullname(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
@@ -30,6 +47,7 @@ async def load_fullname(message: types.Message, state: FSMContext):
     await message.answer("Отлично! Теперь введите свой номер телефона:")
     await RegistrationStates.next()
 
+
 async def load_phone_number(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         global phone_number
@@ -38,18 +56,12 @@ async def load_phone_number(message: types.Message, state: FSMContext):
     await message.answer("Отлично! Теперь введите название своей компании:")
     await RegistrationStates.next()
 
+
 async def load_company_name(message: types.Message, state: FSMContext):
     global user_id
     global company_name
     user_id = message.from_user.id
     company_name = message.text
-
-    if user_id not in staff:
-        staff.append(user_id)
-        with open('staff_config.py', 'w') as config_file:
-            config_file.write(f"staff = {staff}")
-    else:
-        await message.answer("Данный телеграм id уже существует в базе байеров")
 
     async with state.proxy() as data:
         data['name_of_company'] = company_name
@@ -63,6 +75,7 @@ async def load_company_name(message: types.Message, state: FSMContext):
     await message.answer("Верно ?", reply_markup=buttons.submit_markup)
     await RegistrationStates.next()
 
+
 async def submit(message: types.Message, state: FSMContext):
     if message.text.lower() == 'да':
         async with state.proxy() as data:
@@ -72,6 +85,7 @@ async def submit(message: types.Message, state: FSMContext):
     elif message.text.lower() == 'нет':
         await message.answer("Отменено!", reply_markup=buttons.StartClient)
         await state.finish()
+
 
 async def send_admin_data(data):
     inline_keyboard = InlineKeyboardMarkup(row_width=2)
@@ -88,6 +102,7 @@ async def send_admin_data(data):
     for admin in Director:
         await bot.send_message(chat_id=admin, text=caption, reply_markup=inline_keyboard)
 
+
 async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.send_message(user_id,
                            text="Регистрация прошла успешно! ✅",
@@ -95,7 +110,11 @@ async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
     for i in Director:
         await bot.send_message(i, text='Подтверждено! ✅')
         await insert_bayers(company_name, phone_number, full_name, user_id)
+        staff.append(user_id)
+        with open('staff_config.py', 'w') as config_file:
+            config_file.write(f"staff = {staff}")
         await state.finish()
+
 
 async def answer_no(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.send_message(user_id,
@@ -105,9 +124,11 @@ async def answer_no(callback_query: types.CallbackQuery, state: FSMContext):
         await bot.send_message(i, text='Отклонено! ❌')
         await state.finish()
 
+
 async def cancel_reg(message: types.Message, state: FSMContext):
     await state.finish()
     await message.answer('Отменено!', reply_markup=None)
+
 
 def registration(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена", ignore_case=True), state="*")

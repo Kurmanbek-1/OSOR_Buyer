@@ -26,3 +26,25 @@ async def insert_bayers(name_of_company, phone, fio, telegramm_id):
             telegramm_id,
         )
         await connection.execute(sql_queries.BAYERS_INSERT_QUERY, *values)
+
+
+async def check_telegramm_id_existence(telegramm_id):
+    async with pool.acquire() as connection:
+        existing_user = await connection.fetchval(
+            "SELECT COUNT(*) FROM bayers WHERE telegramm_id = $1", telegramm_id
+        )
+        # Если пользователь с таким telegramm_id уже зарегистрирован, возвращаем True
+        return existing_user > 0
+
+
+async def get_all_buyers():
+    async with asyncpg.create_pool(POSTGRES_URL) as pool:
+        async with pool.acquire() as connection:
+            rows = await connection.fetch("SELECT * FROM bayers")
+            return rows
+
+
+async def delete_buyer(telegramm_id):
+    async with asyncpg.create_pool(POSTGRES_URL) as pool:
+        async with pool.acquire() as connection:
+            await connection.execute("DELETE FROM bayers WHERE telegramm_id = $1", telegramm_id)

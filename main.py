@@ -4,7 +4,7 @@ import buttons
 from config import dp, bot, Developers, data_base
 
 from handlers import commands, search
-from handlers.FSM_admin import registration
+from handlers.FSM_admin import registration, delete_buers
 from handlers.FSM_client import all_products_client, order_client, review_client
 from handlers.FSM_staff import all_products_staff, fill_products_staff
 
@@ -23,6 +23,7 @@ async def on_startup(_):
 commands.register_commands(dp)
 search.register_search(dp)
 
+delete_buers.register_delete_staff(dp)
 registration.registration(dp)
 review_client.register_review(dp)
 
