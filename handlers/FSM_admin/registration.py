@@ -21,16 +21,14 @@ class RegistrationStates(StatesGroup):
 
 
 async def cmd_start(message: types.Message):
-    telegramm_id = message.from_user.id
+    telegramm_id = str(message.from_user.id)
 
     if telegramm_id in Director:
         await message.answer("Админы и Директора не могут стать байерами")
-
     elif telegramm_id in Admins:
         await message.answer("Админы и Директора не могут стать байерами")
-
     else:
-        is_registered = await check_telegramm_id_existence(telegramm_id)
+        is_registered = await check_telegramm_id_existence(int(telegramm_id))  # Преобразование в целое число
 
         if is_registered:
             await message.answer("Данный телеграмм аккаунт уже зарегистрирован.")
@@ -60,7 +58,7 @@ async def load_phone_number(message: types.Message, state: FSMContext):
 async def load_company_name(message: types.Message, state: FSMContext):
     global user_id
     global company_name
-    user_id = message.from_user.id
+    user_id = int(message.from_user.id)
     company_name = message.text
 
     async with state.proxy() as data:
@@ -80,7 +78,9 @@ async def submit(message: types.Message, state: FSMContext):
     if message.text.lower() == 'да':
         async with state.proxy() as data:
             await send_admin_data(data)
-        await message.answer("Отправлено на проверку администратору! ⏳", reply_markup=buttons.StartClient)
+        await message.answer(text="Отправлено на проверку администратору! ✅\n"
+                                  "Подождите немного ⏳", reply_markup=buttons.StartClient)
+
         await state.finish()
     elif message.text.lower() == 'нет':
         await message.answer("Отменено!", reply_markup=buttons.StartClient)
@@ -109,7 +109,7 @@ async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
                            reply_markup=buttons.StartStaff)
     for i in Director:
         await bot.send_message(i, text='Подтверждено! ✅')
-        await insert_bayers(company_name, phone_number, full_name, user_id)
+        await insert_bayers(company_name, phone_number, full_name, int(user_id))  # Преобразуйте user_id в int
         staff.append(user_id)
         with open('staff_config.py', 'w') as config_file:
             config_file.write(f"staff = {staff}")
