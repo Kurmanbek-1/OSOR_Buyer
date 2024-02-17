@@ -20,8 +20,7 @@ StartDirector = ReplyKeyboardMarkup(resize_keyboard=True,
                                     ).add(KeyboardButton('/Товары*'),
                                           KeyboardButton('/Все_сотрудники'),
                                           KeyboardButton('/Отзывы'),
-                                          KeyboardButton('/Поиск'),
-                                          KeyboardButton('/Удаление'), )
+                                          KeyboardButton('/Поиск'), )
 
 StartStaff = ReplyKeyboardMarkup(resize_keyboard=True,
                                  one_time_keyboard=True,
@@ -56,7 +55,7 @@ CategoryButtonsStaff = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboa
                                                             KeyboardButton('/Акссесуары'),
                                                             KeyboardButton('/Верхняя_одежда'),
                                                             KeyboardButton('/Штаны'),
-                                                            cancel_for_staff)
+                                                            KeyboardButton('Отмена!'))
 
 CategoryButtonsClient = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False,
                                             row_width=2).add(KeyboardButton('/Обувь'),

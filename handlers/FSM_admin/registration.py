@@ -7,7 +7,7 @@ import buttons
 from config import Director, bot, Admins
 from staff_config import staff
 
-from db.ORM import insert_bayers, check_telegramm_id_existence
+from db.ORM import insert_bayers, check_telegramm_id_existence, check_company_name_existence
 
 
 class RegistrationStates(StatesGroup):
@@ -21,16 +21,14 @@ class RegistrationStates(StatesGroup):
 
 
 async def cmd_start(message: types.Message):
-    telegramm_id = message.from_user.id
+    telegramm_id = str(message.from_user.id)
 
     if telegramm_id in Director:
         await message.answer("Админы и Директора не могут стать байерами")
-
     elif telegramm_id in Admins:
         await message.answer("Админы и Директора не могут стать байерами")
-
     else:
-        is_registered = await check_telegramm_id_existence(telegramm_id)
+        is_registered = await check_telegramm_id_existence(int(telegramm_id))  # Преобразование в целое число
 
         if is_registered:
             await message.answer("Данный телеграмм аккаунт уже зарегистрирован.")
@@ -60,27 +58,34 @@ async def load_phone_number(message: types.Message, state: FSMContext):
 async def load_company_name(message: types.Message, state: FSMContext):
     global user_id
     global company_name
-    user_id = message.from_user.id
+    user_id = int(message.from_user.id)
     company_name = message.text
 
-    async with state.proxy() as data:
-        data['name_of_company'] = company_name
-        data['telegram_id'] = user_id
+    is_registered = await check_company_name_existence(company_name)
 
-    await message.answer(f"Данные регистрации!\n\n"
-                         f"Ваши данные:\n"
-                         f"ФИО: {full_name}\n"
-                         f"Номер телефона: {phone_number}\n"
-                         f"Название компании: {company_name}")
-    await message.answer("Верно ?", reply_markup=buttons.submit_markup)
-    await RegistrationStates.next()
+    if is_registered:
+        await message.answer("Название данной компании уже зарегистрировано в базе данных!")
+    else:
+        async with state.proxy() as data:
+            data['name_of_company'] = company_name
+            data['telegram_id'] = user_id
+
+        await message.answer(f"Данные регистрации!\n\n"
+                             f"Ваши данные:\n"
+                             f"ФИО: {full_name}\n"
+                             f"Номер телефона: {phone_number}\n"
+                             f"Название компании: {company_name}")
+        await message.answer("Верно ?", reply_markup=buttons.submit_markup)
+        await RegistrationStates.next()
 
 
 async def submit(message: types.Message, state: FSMContext):
     if message.text.lower() == 'да':
         async with state.proxy() as data:
             await send_admin_data(data)
-        await message.answer("Отправлено на проверку администратору! ⏳", reply_markup=buttons.StartClient)
+        await message.answer(text="Отправлено на проверку администратору! ✅\n"
+                                  "Подождите немного ⏳", reply_markup=buttons.StartClient)
+
         await state.finish()
     elif message.text.lower() == 'нет':
         await message.answer("Отменено!", reply_markup=buttons.StartClient)
@@ -109,7 +114,7 @@ async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
                            reply_markup=buttons.StartStaff)
     for i in Director:
         await bot.send_message(i, text='Подтверждено! ✅')
-        await insert_bayers(company_name, phone_number, full_name, user_id)
+        await insert_bayers(company_name, phone_number, full_name, int(user_id))
         staff.append(user_id)
         with open('staff_config.py', 'w') as config_file:
             config_file.write(f"staff = {staff}")

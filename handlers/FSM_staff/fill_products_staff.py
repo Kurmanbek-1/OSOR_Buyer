@@ -6,15 +6,19 @@ from config import bot, data_base, POSTGRES_URL
 import buttons
 import asyncpg
 
+import random
+import string
+
 from staff_config import staff
+
+from db.ORM import get_product_from_article, get_company_name, \
+    insert_tovar, save_order_photo, get_last_inserted_order_id
 
 
 # =======================================================================================================================
 
 class FSM_fill_products(StatesGroup):
-    name_buyer = State()
     info = State()
-    articule = State()
     quantity = State()
     category = State()
     price = State()
@@ -24,41 +28,18 @@ class FSM_fill_products(StatesGroup):
 
 async def fsm_start(message: types.Message):
     if message.from_user.id in staff:
-        await FSM_fill_products.name_buyer.set()
-        await message.answer(text='Название компании?', reply_markup=buttons.cancel_for_staff)
+        await FSM_fill_products.info.set()
+        await message.answer(text='Информация о товаре?!', reply_markup=buttons.cancel_for_staff)
     else:
-        await message.answer('Вы не админ!')
-
-
-async def load_name_buyer(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['info'] = message.text
-    await FSM_fill_products.next()
-    await message.answer('"Информация о товаре?!')
+        await message.answer('Вы не сотрудник!')
 
 
 async def load_info(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['info'] = message.text
     await FSM_fill_products.next()
-    await message.answer('Артикул товара?')
+    await message.answer(text='Количество товара?')
 
-
-async def load_arcticle(message: types.Message, state: FSMContext):
-    if message.text.isdigit():
-        async with state.proxy() as data:
-            pool = await asyncpg.create_pool(POSTGRES_URL)
-            article_number = message.text
-            products = await get_product_from_article(pool, article_number)
-            if products:
-                await message.answer("Товар с данным артиклем уже существует!")
-            else:
-                data['article_number'] = article_number
-                await FSM_fill_products.next()
-                await message.answer('Количество товара?')
-
-    else:
-        await message.answer('Введите числами!')
 
 
 async def load_quantity(message: types.Message, state: FSMContext):
@@ -97,25 +78,45 @@ async def load_photos(message: types.Message, state: FSMContext):
                          reply_markup=buttons.finish_load_photos)
 
 
+async def generate_unique_article():
+    article_length = 6
+    while True:
+        # Генерация случайного артикула из цифр
+        article_number = ''.join(random.choices(string.digits, k=article_length))
+
+        # Проверка наличия артикула в базе данных
+        products = await get_product_from_article(article_number)
+        if not products:
+            return article_number  # Возвращаем уникальный артикул
+
+
 async def finish_load_photos(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
+
+        telegramm_id = message.from_user.id
+        company_name = await get_company_name(telegramm_id)
+
+        data['company_name'] = company_name
+        data['bayer_id'] = str(telegramm_id)
+
+        article_number = await generate_unique_article()
+        data['article'] = article_number
+
         product_info_text = (
+            f"Байер: {data['company_name']}\n"
             f"Информация о товаре: {data['info']}\n"
-            f"Артикул: {data['article_number']}\n"
+            f"Артикул: {data['article']}\n"
             f"Количество: {data['quantity']}\n"
             f"Категория: {data['category']}\n"
             f"Цена: {data['price']}"
         )
 
         media_group = [types.InputMediaPhoto(media=image) for image in data['photos'][:-1]]
-
         last_image = data['photos'][-1]
         last_media = types.InputMediaPhoto(media=last_image, caption=product_info_text)
-
         media_group.append(last_media)
 
-        await bot.send_media_group(chat_id=message.chat.id,
-                                   media=media_group)
+        await bot.send_media_group(chat_id=message.chat.id, media=media_group)
 
         await message.answer("Всё правильно?", reply_markup=buttons.submit_markup)
         await FSM_fill_products.next()
@@ -125,17 +126,17 @@ async def load_submit(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if message.text == "да":
             await data_base.connect()
-            #
-            # # Записываем информацию о товаре в таблицу products
-            # await save_product_info(state)
-            #
-            # # Получаем ID последнего добавленного товара
-            # # Это нужно, чтобы привязать фотографии к данному товару
-            # product_id = await get_last_inserted_product_id()
-            #
-            # # Записываем фотографии товара в таблицу photos
-            # for photo in data['photos']:
-            #     await save_product_photo(product_id, photo)
+
+            # Записываем информацию о товаре в таблицу products
+            await insert_tovar(state)
+
+            # Получаем ID последнего добавленного товара
+            # Это нужно, чтобы привязать фотографии к данному товару
+            order_id = await get_last_inserted_order_id()
+
+            # Записываем фотографии товара в таблицу photos
+            for photo in data['photos']:
+                await save_order_photo(order_id, photo)
             await message.answer('Товар добавлен!', reply_markup=buttons.StartStaff)
             await state.finish()
 
@@ -162,9 +163,7 @@ def register_fill_products(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена!", ignore_case=True), state="*")
     dp.register_message_handler(fsm_start, commands=["Заполнить_товар!"])
 
-    dp.register_message_handler(load_name_buyer, state=FSM_fill_products.name_buyer)
     dp.register_message_handler(load_info, state=FSM_fill_products.info)
-    dp.register_message_handler(load_arcticle, state=FSM_fill_products.articule)
     dp.register_message_handler(load_quantity, state=FSM_fill_products.quantity)
     dp.register_message_handler(load_category, state=FSM_fill_products.category)
     dp.register_message_handler(load_price, state=FSM_fill_products.price)

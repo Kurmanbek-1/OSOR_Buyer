@@ -1,24 +1,25 @@
 CREATE_TABLE_ORDER = '''
     CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
-        bayer_id VARCHAR(255) UNIQUE,
+        info TEXT,
         article TEXT UNIQUE,
-        company_name VARCHAR(255),
-        bayer_datas TEXT,
+        quantity INTEGER,
         category VARCHAR(255),
-        price DECIMAL(10, 2)
+        price DECIMAL(10, 2),
+        bayer_id TEXT UNIQUE,
+        company_name VARCHAR(255)
     );
 '''
 
 ORDER_INSERT_QUERY = """
     INSERT INTO orders
-    (bayer_id, article_number, company_name, bayer_datas, category, price)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    (info, article, quantity, category, price, bayer_id, company_name)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT DO NOTHING;
 """
 
 CREATE_TABLE_PHOTO_OF_ORDERS = '''
-    CREATE TABLE IF NOT EXISTS photos (
+    CREATE TABLE IF NOT EXISTS photos_orders (
         id SERIAL PRIMARY KEY,
         order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
         photo TEXT

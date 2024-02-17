@@ -20,7 +20,7 @@ async def start(message: types.Message):
         await message.answer(text=text)
         await message.answer(text='Вы директор ‼️', reply_markup=buttons.StartDirector)
 
-    elif message.from_user in staff:
+    elif message.from_user.id in staff:
         await message.answer(text=text)
         await message.answer(text='Вы сотрудник ‼️', reply_markup=buttons.StartStaff)
 
