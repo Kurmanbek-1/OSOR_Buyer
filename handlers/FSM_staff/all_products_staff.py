@@ -10,6 +10,7 @@ import asyncpg
 import buttons
 
 from staff_config import staff
+from db.utils import get_product_from_category, get_product_photos
 
 
 
@@ -37,9 +38,10 @@ async def load_category(message: types.Message, state: FSMContext):
                 if len(products) <= 5:
                     for product in products:
                         product_info = (
+                            f"Байер: {product['company_name']}\n"
                             f"Информация: {product['info']}\n"
                             f"Категория: {product['category']}\n"
-                            f"Артикул: {product['article_number']}\n"
+                            f"Артикул: {product['article']}\n"
                             f"Количество: {product['quantity']}\n"
                             f"Цена: {product['price']}"
                         )
@@ -67,9 +69,10 @@ async def load_category(message: types.Message, state: FSMContext):
 
                     for product in current_products:
                         product_info = (
+                            f"Байер: {product['company_name']}\n"
                             f"Информация: {product['info']}\n"
                             f"Категория: {product['category']}\n"
-                            f"Артикул: {product['article_number']}\n"
+                            f"Артикул: {product['article']}\n"
                             f"Количество: {product['quantity']}\n"
                             f"Цена: {product['price']}"
                         )
@@ -109,9 +112,10 @@ async def load_category(message: types.Message, state: FSMContext):
 
                 for product in current_products:
                     product_info = (
+                        f"Байер: {product['company_name']}\n"
                         f"Информация: {product['info']}\n"
                         f"Категория: {product['category']}\n"
-                        f"Артикул: {product['article_number']}\n"
+                        f"Артикул: {product['article']}\n"
                         f"Количество: {product['quantity']}\n"
                         f"Цена: {product['price']}"
                     )
@@ -164,7 +168,7 @@ async def cancel_reg(message: types.Message, state: FSMContext):
 
 def register_all_products_admins(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена!", ignore_case=True), state="*")
-    dp.register_message_handler(fsm_start, commands=["Все_товары!", 'all_products_admins'])
+    dp.register_message_handler(fsm_start, commands=["Мои_товары!", 'all_products_admins'])
     dp.register_message_handler(load_category, state=all_products_admin_fsm.category)
     for category in ["Обувь", "Нижнее_белье", "Акссесуары", "Верхняя_одежда", "Штаны"]:
         dp.register_message_handler(load_more, Text(equals=f'Ещё из категории: {category}', ignore_case=True),
