@@ -8,6 +8,8 @@ import asyncpg
 import buttons
 from staff_config import staff
 
+from db.utils import get_product_from_category, get_product_photos
+
 # =======================================================================================================================
 
 class all_products_fsm(StatesGroup):
@@ -36,9 +38,10 @@ async def load_category(message: types.Message, state: FSMContext):
             if len(products) <= 5:
                 for product in products:
                     product_info = (
+                        f"Байер: {product['company_name']}\n"
                         f"Информация: {product['info']}\n"
                         f"Категория: {product['category']}\n"
-                        f"Артикул: {product['article_number']}\n"
+                        f"Артикул: {product['article']}\n"
                         f"Количество: {product['quantity']}\n"
                         f"Цена: {product['price']}"
                     )
@@ -66,9 +69,10 @@ async def load_category(message: types.Message, state: FSMContext):
                 for product in current_products:
                     # Отправка информации о товаре
                     product_info = (
+                        f"Байер: {product['company_name']}\n"
                         f"Информация: {product['info']}\n"
                         f"Категория: {product['category']}\n"
-                        f"Артикул: {product['article_number']}\n"
+                        f"Артикул: {product['article']}\n"
                         f"Количество: {product['quantity']}\n"
                         f"Цена: {product['price']}"
                     )
@@ -109,9 +113,10 @@ async def load_category(message: types.Message, state: FSMContext):
 
             for product in current_products:
                 product_info = (
+                    f"Байер: {product['company_name']}\n"
                     f"Информация: {product['info']}\n"
                     f"Категория: {product['category']}\n"
-                    f"Артикул: {product['article_number']}\n"
+                    f"Артикул: {product['article']}\n"
                     f"Количество: {product['quantity']}\n"
                     f"Цена: {product['price']}"
                 )

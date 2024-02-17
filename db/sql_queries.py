@@ -6,7 +6,7 @@ CREATE_TABLE_ORDER = '''
         quantity INTEGER,
         category VARCHAR(255),
         price DECIMAL(10, 2),
-        bayer_id TEXT UNIQUE,
+        bayer_id TEXT,
         company_name VARCHAR(255)
     );
 '''

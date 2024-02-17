@@ -134,9 +134,9 @@ async def load_submit(message: types.Message, state: FSMContext):
             # Это нужно, чтобы привязать фотографии к данному товару
             order_id = await get_last_inserted_order_id()
 
-            # Записываем фотографии товара в таблицу photos
             for photo in data['photos']:
                 await save_order_photo(order_id, photo)
+
             await message.answer('Товар добавлен!', reply_markup=buttons.StartStaff)
             await state.finish()
 

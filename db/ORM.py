@@ -46,9 +46,10 @@ async def check_company_name_existence(company_name):
 
 
 async def get_all_buyers():
-    async with pool.acquire() as connection:
-        rows = await connection.fetch("SELECT * FROM bayers")
-        return rows
+    async with asyncpg.create_pool(POSTGRES_URL) as pool:
+        async with pool.acquire() as connection:
+            rows = await connection.fetch("SELECT * FROM bayers")
+            return rows
 
 async def get_company_name(telegramm_id):
     async with pool.acquire() as connection:
@@ -60,18 +61,20 @@ async def get_company_name(telegramm_id):
 
 
 async def get_product_from_article(article):
-    async with pool.acquire() as connection:
-        products = await connection.fetch(
-            """SELECT * FROM orders
-            WHERE article = $1""", article
-        )
+    async with asyncpg.create_pool(POSTGRES_URL) as pool:
+        async with pool.acquire() as connection:
+            products = await connection.fetch(
+                """SELECT * FROM orders
+                WHERE article = $1""", article
+            )
 
-        return products
+            return products
 
 
 async def delete_buyer(telegramm_id):
-    async with pool.acquire() as connection:
-        await connection.execute("DELETE FROM bayers WHERE telegramm_id = $1", telegramm_id)
+    async with asyncpg.create_pool(POSTGRES_URL) as pool:
+        async with pool.acquire() as connection:
+            await connection.execute("DELETE FROM bayers WHERE telegramm_id = $1", telegramm_id)
 
 
 async def insert_tovar(state):

@@ -109,6 +109,7 @@ async def send_admin_data(data):
 
 
 async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.delete()
     await bot.send_message(user_id,
                            text="Регистрация прошла успешно! ✅",
                            reply_markup=buttons.StartStaff)
@@ -118,16 +119,17 @@ async def answer_yes(callback_query: types.CallbackQuery, state: FSMContext):
         staff.append(user_id)
         with open('staff_config.py', 'w') as config_file:
             config_file.write(f"staff = {staff}")
-        await state.finish()
+    await state.finish()
 
 
 async def answer_no(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.delete()
     await bot.send_message(user_id,
                            text="Вам отказано! ❌",
                            reply_markup=buttons.StartClient)
     for i in Director:
         await bot.send_message(i, text='Отклонено! ❌')
-        await state.finish()
+    await state.finish()
 
 
 async def cancel_reg(message: types.Message, state: FSMContext):
