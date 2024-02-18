@@ -102,3 +102,9 @@ async def save_order_photo(order_id, photo):
 async def get_last_inserted_order_id():
     async with pool.acquire() as connection:
         return await connection.fetchval("SELECT lastval()")
+
+
+async def delete_product(product_id):
+    product_id = int(product_id)
+    async with pool.acquire() as connection:
+        await connection.execute("""DELETE FROM orders WHERE id = $1;""", product_id)
