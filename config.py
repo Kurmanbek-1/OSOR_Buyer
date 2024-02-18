@@ -10,9 +10,9 @@ bot = Bot(TOKEN)
 dp = Dispatcher(bot=bot, storage=storage)
 
 
-Director = [5818455846, ]
-Admins = [6451475162, ]
-Developers = [659106628, ]
+Director = [995712956, ]
+Admins = [995712956, ]
+Developers = [995712956, ]
 
 
 ip = config('ip')

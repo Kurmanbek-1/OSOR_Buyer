@@ -2,9 +2,9 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from config import bot, data_base, POSTGRES_URL
-import buttons
-import asyncpg
+from config import bot, data_base
+from keyboards import buttons
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 import random
 import string
@@ -41,13 +41,19 @@ async def load_info(message: types.Message, state: FSMContext):
     await message.answer(text='Количество товара?')
 
 
-
 async def load_quantity(message: types.Message, state: FSMContext):
     if message.text.isdigit():
+        StaffCategoryButtons = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False,
+                                                   row_width=2).add(KeyboardButton('/Обувь'),
+                                                                    KeyboardButton('/Нижнее_белье'),
+                                                                    KeyboardButton('/Акссесуары'),
+                                                                    KeyboardButton('/Верхняя_одежда'),
+                                                                    KeyboardButton('/Штаны'),
+                                                                    KeyboardButton('Отмена!'),)
         async with state.proxy() as data:
             data['quantity'] = int(message.text)
         await FSM_fill_products.next()
-        await message.answer(text='Категория товаров?', reply_markup=buttons.CategoryButtonsStaff)
+        await message.answer(text='Категория товаров?', reply_markup=StaffCategoryButtons)
     else:
         await message.answer('Введите числами!')
 
@@ -92,7 +98,6 @@ async def generate_unique_article():
 
 async def finish_load_photos(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-
         telegramm_id = message.from_user.id
         company_name = await get_company_name(telegramm_id)
 
@@ -161,7 +166,7 @@ async def cancel_reg(message: types.Message, state: FSMContext):
 # =======================================================================================================================
 def register_fill_products(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена!", ignore_case=True), state="*")
-    dp.register_message_handler(fsm_start, commands=["Заполнить_товар!"])
+    dp.register_message_handler(fsm_start, commands=["Заполнить_товар!", "fill_product"])
 
     dp.register_message_handler(load_info, state=FSM_fill_products.info)
     dp.register_message_handler(load_quantity, state=FSM_fill_products.quantity)

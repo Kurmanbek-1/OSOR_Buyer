@@ -2,6 +2,7 @@ import asyncpg
 from db import sql_queries
 from config import POSTGRES_URL
 
+
 async def create_tables():
     global pool
     pool = await asyncpg.create_pool(POSTGRES_URL)
@@ -16,6 +17,7 @@ async def create_tables():
             print("База данных успешно подключена и таблицы созданы")
         finally:
             await pool.release(connection)
+
 
 async def insert_bayers(name_of_company, phone, fio, telegramm_id):
     async with pool.acquire() as connection:
@@ -36,6 +38,7 @@ async def check_telegramm_id_existence(telegramm_id):
         # Если пользователь с таким telegramm_id уже зарегистрирован, возвращаем True
         return existing_user > 0
 
+
 async def check_company_name_existence(company_name):
     async with pool.acquire() as connection:
         existing_company = await connection.fetchval(
@@ -50,6 +53,7 @@ async def get_all_buyers():
         async with pool.acquire() as connection:
             rows = await connection.fetch("SELECT * FROM bayers")
             return rows
+
 
 async def get_company_name(telegramm_id):
     async with pool.acquire() as connection:
@@ -91,6 +95,7 @@ async def insert_tovar(state):
             )
             await connection.execute(sql_queries.ORDER_INSERT_QUERY, *values)
 
+
 async def save_order_photo(order_id, photo):
     async with pool.acquire() as connection:
         values = (
@@ -99,6 +104,13 @@ async def save_order_photo(order_id, photo):
         )
         await connection.execute(sql_queries.ORDER_PHOTO_INSERT_QUERY, *values)
 
+
 async def get_last_inserted_order_id():
     async with pool.acquire() as connection:
         return await connection.fetchval("SELECT lastval()")
+
+
+async def delete_product(product_id):
+    product_id = int(product_id)
+    async with pool.acquire() as connection:
+        await connection.execute(sql_queries.DELETE_PRODUCT_QUERY, product_id)

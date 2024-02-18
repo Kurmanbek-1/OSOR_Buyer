@@ -82,3 +82,7 @@ BAYERS_INSERT_QUERY = """
     VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING;
 """
+
+DELETE_PRODUCT_QUERY = """
+    DELETE FROM orders WHERE id = $1;
+"""

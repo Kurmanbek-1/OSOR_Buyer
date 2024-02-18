@@ -1,12 +1,13 @@
 from aiogram.utils import executor
 import logging
-import buttons
+from keyboards import buttons
 from config import dp, bot, Developers, data_base
 
 from handlers import commands, search
-from handlers.FSM_admin import registration, delete_buers
+from handlers.FSM_admin import registration, delete_buers, all_products_admin
 from handlers.FSM_client import all_products_client, order_client, review_client
 from handlers.FSM_staff import all_products_staff, fill_products_staff
+from handlers.FSM_director import all_products_director
 
 from db.ORM import create_tables
 
@@ -26,12 +27,15 @@ search.register_search(dp)
 delete_buers.register_delete_staff(dp)
 registration.registration(dp)
 review_client.register_review(dp)
+all_products_admin.register_all_products_administration(dp)
 
 order_client.register_order_for_client(dp)
 all_products_client.register_all_products(dp)
 
 all_products_staff.register_all_products_admins(dp)
 fill_products_staff.register_fill_products(dp)
+
+all_products_director.register_all_products_director(dp)
 
 # ===========================================================================
 if __name__ == '__main__':

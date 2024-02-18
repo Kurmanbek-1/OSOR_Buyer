@@ -1,6 +1,6 @@
 from aiogram import Dispatcher, types
 
-import buttons
+from keyboards import buttons
 from config import Director
 from staff_config import staff
 from db.ORM import get_all_buyers, delete_buyer

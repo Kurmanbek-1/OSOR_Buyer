@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import buttons
+from keyboards import buttons
 from config import Director, bot, Admins
 from staff_config import staff
 
@@ -71,7 +71,7 @@ async def load_company_name(message: types.Message, state: FSMContext):
             data['telegram_id'] = user_id
 
         await message.answer(f"Данные регистрации!\n\n"
-                             f"Ваши данные:\n"
+                             f"Ваши данные:⬇️\n"
                              f"ФИО: {full_name}\n"
                              f"Номер телефона: {phone_number}\n"
                              f"Название компании: {company_name}")

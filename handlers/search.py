@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 
 import asyncpg
-import buttons
+from keyboards import buttons
 
 
 class all_products_from_article_fsm(StatesGroup):
