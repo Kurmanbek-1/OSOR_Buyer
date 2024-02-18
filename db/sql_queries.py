@@ -37,16 +37,16 @@ ORDER_PHOTO_INSERT_QUERY = """
 CREATE_TABLE_REVIEW = '''
     CREATE TABLE IF NOT EXISTS reviews (
         id SERIAL PRIMARY KEY,
-        article TEXT,
-        name_order TEXT,
-        name_bayer VARCHAR(255),
-        text_review TEXT
+        name_buyer VARCHAR(255),
+        article_number TEXT,
+        info_product TEXT,
+        review TEXT
     );
 '''
 
 REVIEWS_INSERT_QUERY = """
     INSERT INTO reviews
-    (article, name_order, name_bayer, text_review)
+    (name_buyer, article_number, info_product, review)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING;
 """
@@ -60,7 +60,7 @@ CREATE_TABLE_PHOTO_OF_REVIEWS = '''
 '''
 
 REVIEW_PHOTO_INSERT_QUERY = """
-    INSERT INTO photos_orders
+    INSERT INTO photos_review
     (review_id, photo)
     VALUES ($1, $2)
     ON CONFLICT DO NOTHING;

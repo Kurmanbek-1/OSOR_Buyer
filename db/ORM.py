@@ -108,3 +108,27 @@ async def delete_product(product_id):
     product_id = int(product_id)
     async with pool.acquire() as connection:
         await connection.execute("""DELETE FROM orders WHERE id = $1;""", product_id)
+
+
+async def insert_reviews(state):
+    async with pool.acquire() as connection:
+        async with state.proxy() as data:
+            values = (
+                data['name_buyer'],
+                data['article_number'],
+                data['info_product'],
+                data['review'],
+            )
+            await connection.execute(sql_queries.REVIEWS_INSERT_QUERY, *values)
+
+async def save_review_photo(review_id, photo):
+    async with pool.acquire() as connection:
+        values = (
+            review_id,
+            photo,
+        )
+        await connection.execute(sql_queries.REVIEW_PHOTO_INSERT_QUERY, *values)
+
+async def get_last_inserted_review_id():
+    async with pool.acquire() as connection:
+        return await connection.fetchval("SELECT lastval()")
