@@ -4,14 +4,15 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from config import POSTGRES_URL, bot
 
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 import asyncpg
 from keyboards import buttons
 
 from staff_config import staff
-from db.utils import get_product_from_category, get_product_photos
-
+from db.utils import get_product_from_category, get_product_photos, \
+    get_product_from_buyer_id
+from db.ORM import delete_product
 
 
 class all_products_admin_fsm(StatesGroup):
@@ -35,32 +36,79 @@ async def load_category(message: types.Message, state: FSMContext):
             products = await get_product_from_category(pool, category)
 
             if products:
-                if len(products) <= 5:
-                    for product in products:
-                        product_info = (
-                            f"Байер: {product['company_name']}\n"
-                            f"Информация: {product['info']}\n"
-                            f"Категория: {product['category']}\n"
-                            f"Артикул: {product['article']}\n"
-                            f"Количество: {product['quantity']}\n"
-                            f"Цена: {product['price']}"
-                        )
+                buyer_id = str(message.from_user.id)
+                products = await get_product_from_buyer_id(pool, buyer_id)
+                if products:
+                    if len(products) <= 5:
+                        for product in products:
+                            product_info = (
+                                f"Байер: {product['company_name']}\n"
+                                f"Информация: {product['info']}\n"
+                                f"Категория: {product['category']}\n"
+                                f"Артикул: {product['article']}\n"
+                                f"Количество: {product['quantity']}\n"
+                                f"Цена: {product['price']}"
+                            )
 
-                        photos = await get_product_photos(pool, product['id'])
-                        photo_urls = [photo['photo'] for photo in photos]
+                            keyboard = InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    f"Удалить",
+                                    callback_data=f"delete_product{product['id']}"
+                                )
+                            )
 
-                        media_group = [types.InputMediaPhoto(media=image) for image in photo_urls[:-1]]
+                            photos = await get_product_photos(pool, product['id'])
+                            photo_urls = [photo['photo'] for photo in photos]
+                            media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
 
-                        last_image = photo_urls[-1]
-                        last_media = types.InputMediaPhoto(media=last_image, caption=product_info)
+                            await bot.send_media_group(chat_id=message.chat.id, media=media_group)
+                            await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
 
-                        media_group.append(last_media)
+                        await state.finish()
+                        await message.answer(f"Это все товары из категории: {category}",
+                                             reply_markup=buttons.StartStaff)
+                        await message.answer("Чтобы удалить товар нажмите на кнопку 'Удалить' под сообщением")
 
-                        await bot.send_media_group(chat_id=message.chat.id, media=media_group)
-                    await state.finish()
-                    await message.answer(f"Это все товары из категории: {category}",
-                                         reply_markup=buttons.StartStaff)
+                    else:
+                        chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
+                        data = await state.get_data()
+                        current_chunk = data.get("current_chunk", 0)
+                        current_products = chunks[current_chunk]
 
+                        for product in current_products:
+                            product_info = (
+                                f"Байер: {product['company_name']}\n"
+                                f"Информация: {product['info']}\n"
+                                f"Категория: {product['category']}\n"
+                                f"Артикул: {product['article']}\n"
+                                f"Количество: {product['quantity']}\n"
+                                f"Цена: {product['price']}"
+                            )
+
+                            keyboard = InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    f"Удалить",
+                                    callback_data=f"delete_product{product['id']}"
+                                )
+                            )
+
+                            photos = await get_product_photos(pool, product['id'])
+                            photo_urls = [photo['photo'] for photo in photos]
+                            media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
+
+                            await bot.send_media_group(chat_id=message.chat.id, media=media_group)
+                            await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
+
+                        await state.update_data(current_chunk=current_chunk + 1)
+
+                        if current_chunk < len(chunks) - 1:
+                            ShowMore = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
+                            ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
+                            ShowMore.add(KeyboardButton('/Отмена!'))
+                            await message.answer("Показать еще?", reply_markup=ShowMore)
+                            await message.answer("Чтобы удалить товар, нажмите на кнопку (/Отмена!), "
+                                                 "либо выведите все товары до конца!")
+                            await all_products_admin_fsm.next()
                 else:
                     chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
                     data = await state.get_data()
@@ -97,6 +145,9 @@ async def load_category(message: types.Message, state: FSMContext):
                         ShowMore.add(KeyboardButton('/Отмена!'))
                         await message.answer("Показать еще?", reply_markup=ShowMore)
                         await all_products_admin_fsm.next()
+
+                    await message.answer("В выбранной категории нет товаров связанных с вашим телеграмм аккаунтом")
+
             else:
                 await message.answer("В выбранной категории нет товаров")
         else:
@@ -120,17 +171,19 @@ async def load_category(message: types.Message, state: FSMContext):
                         f"Цена: {product['price']}"
                     )
 
+                    keyboard = InlineKeyboardMarkup().add(
+                        InlineKeyboardButton(
+                            f"Удалить",
+                            callback_data=f"delete_product{product['id']}"
+                        )
+                    )
+
                     photos = await get_product_photos(pool, product['id'])
                     photo_urls = [photo['photo'] for photo in photos]
-
-                    media_group = [types.InputMediaPhoto(media=image) for image in photo_urls[:-1]]
-
-                    last_image = photo_urls[-1]
-                    last_media = types.InputMediaPhoto(media=last_image, caption=product_info)
-
-                    media_group.append(last_media)
+                    media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
 
                     await bot.send_media_group(chat_id=message.chat.id, media=media_group)
+                    await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
 
                 await state.update_data(current_chunk=current_chunk + 1)
 
@@ -139,15 +192,24 @@ async def load_category(message: types.Message, state: FSMContext):
                     ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
                     ShowMore.add(KeyboardButton('/Отмена!'))
                     await message.answer("Показать еще?", reply_markup=ShowMore)
+                    await message.answer("Чтобы удалить товар, нажмите на кнопку (/Отмена!), "
+                                         "либо выведите все товары до конца!")
                     await all_products_admin_fsm.more_tovars.set()
                 else:
                     await state.finish()
                     await message.answer(f"Это все товары из категории: {category}",
                                          reply_markup=buttons.StartStaff)
+                    await message.answer("Чтобы удалить товар нажмите на кнопку 'Удалить' под сообщением")
             else:
                 await message.answer("В выбранной категории нет товаров")
     else:
         await message.answer("Вы не Админ!")
+
+
+async def complete_delete_product(call: types.CallbackQuery):
+    product_id = call.data.replace("delete_product", "").strip()
+    await delete_product(product_id)
+    await call.message.reply(text="Удалено из базы данных")
 
 
 async def load_more(message: types.Message, state: FSMContext):
@@ -162,6 +224,7 @@ async def cancel_reg(message: types.Message, state: FSMContext):
         if current_state is not None:
             await state.finish()
             await message.answer('Отменено!', reply_markup=buttons.StartStaff)
+            await message.answer("Чтобы удалить товар нажмите на кнопку 'Удалить' под сообщением")
     else:
         await message.answer('Вы не админ!')
 
@@ -173,3 +236,5 @@ def register_all_products_admins(dp: Dispatcher):
     for category in ["Обувь", "Нижнее_белье", "Акссесуары", "Верхняя_одежда", "Штаны"]:
         dp.register_message_handler(load_more, Text(equals=f'Ещё из категории: {category}', ignore_case=True),
                                     state=all_products_admin_fsm.more_tovars)
+    dp.register_callback_query_handler(complete_delete_product,
+                                       lambda call: call.data and call.data.startswith("delete_product"))

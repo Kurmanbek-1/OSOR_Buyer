@@ -1,7 +1,7 @@
 from aiogram import types, Dispatcher
 from config import POSTGRES_URL, bot, Admins, Director, Developers
 
-# from db.utils import get_product_from_article, get_product_photos
+from db.utils import get_product_from_article, get_product_photos
 
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -27,11 +27,12 @@ async def search_article(message: types.Message):
 
     if products:
         for product in products:
-            if product["article_number"] == article_number:
+            if product["article"] == article_number:
                 product_info = (
+                    f"Байер: {product['company_name']}\n"
                     f"Информация: {product['info']}\n"
                     f"Категория: {product['category']}\n"
-                    f"Артикул: {product['article_number']}\n"
+                    f"Артикул: {product['article']}\n"
                     f"Количество: {product['quantity']}\n"
                     f"Цена: {product['price']}"
                 )
@@ -49,7 +50,7 @@ async def search_article(message: types.Message):
                 await bot.send_media_group(chat_id=message.chat.id,
                                            media=media_group)
     else:
-        await message.answer("Товаров с данным артиклем не существует!", reply_markup=buttons.CancelSearch)
+        await message.answer("Товаров с данным артикулом не существует!", reply_markup=buttons.CancelSearch)
 
 
 async def cancel_search(message: types.Message, state: FSMContext):

@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  bot:
+    build:
+      context: .  # Путь к Dockerfile (текущая директория)
+    depends_on:
+      - db_buyer
+    environment:
+      - DB_HOST=db_buyer
+      - DB_PORT=5432
+      - DB_NAME=bot_osor_buyer
+      - DB_USER=postgres
+      - DB_PASSWORD=123
+    # Добавьте другие настройки, такие как порты, сети, монтирование томов, если необходимо
+
+  db_buyer:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=bot_osor_buyer
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123
+    # Добавьте другие настройки, такие как порты, сети, монтирование томов, если необходимо

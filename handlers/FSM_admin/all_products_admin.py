@@ -7,7 +7,9 @@ from config import POSTGRES_URL, bot, Admins
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 import asyncpg
+
 from keyboards import buttons
+
 
 from db.utils import get_product_from_category, get_product_photos
 
