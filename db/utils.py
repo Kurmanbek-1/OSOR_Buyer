@@ -34,3 +34,16 @@ async def get_product_from_buyer_id(pool, buyer_id):
     except Exception as e:
         print(f"Error executing SQL query: {e}")
         return None
+
+
+async def get_review_photos(pool, review_id):
+    try:
+        async with pool.acquire() as connection:
+            photos = await connection.fetch(
+                """SELECT * FROM photos_review
+                WHERE review_id = $1""", review_id
+            )
+            return photos
+    except Exception as e:
+        print(f"Error executing SQL query: {e}")
+        return []

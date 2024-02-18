@@ -10,7 +10,7 @@ bot = Bot(TOKEN)
 dp = Dispatcher(bot=bot, storage=storage)
 
 
-Director = [5818455846, ]
+Director = [6451475162, ]
 Admins = [6451475162, ]
 Developers = [659106628, ]
 

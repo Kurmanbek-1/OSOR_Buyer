@@ -132,3 +132,7 @@ async def save_review_photo(review_id, photo):
 async def get_last_inserted_review_id():
     async with pool.acquire() as connection:
         return await connection.fetchval("SELECT lastval()")
+
+async def get_all_reviews(pool):
+    async with pool.acquire() as connection:
+        return await connection.fetch(sql_queries.ALL_REVIEWS_FOR_DIRECTORS)
