@@ -1,6 +1,6 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
-cancel_button = KeyboardButton('Отмена')
+cancel_button = KeyboardButton('/Отмена❌')
 cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True,
                                     one_time_keyboard=True,
                                     ).add(cancel_button)
@@ -9,7 +9,6 @@ StartClient = ReplyKeyboardMarkup(resize_keyboard=True,
                                   one_time_keyboard=True,
                                   row_width=2
                                   ).add(KeyboardButton('/Товары!'),
-                                        KeyboardButton('/Заказать!'),
                                         KeyboardButton('/ТехПоддержка'),
                                         KeyboardButton('/Написать_отзыв'),
                                         KeyboardButton('/Поиск'))
@@ -39,11 +38,11 @@ StartAdmin = ReplyKeyboardMarkup(resize_keyboard=True,
 
 cancel_for_client = ReplyKeyboardMarkup(resize_keyboard=True,
                                         one_time_keyboard=True,
-                                        ).add(KeyboardButton('Отмена'))
+                                        ).add(KeyboardButton('Отмена!'))
 
 cancel_for_staff = ReplyKeyboardMarkup(resize_keyboard=True,
                                        one_time_keyboard=True,
-                                       ).add(KeyboardButton('Отмена!'))
+                                       ).add(KeyboardButton('/Отмена!'))
 
 cancel_for_director = ReplyKeyboardMarkup(resize_keyboard=True,
                                           one_time_keyboard=True,
@@ -55,7 +54,7 @@ CategoryButtonsStaff = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboa
                                                             KeyboardButton('/Акссесуары'),
                                                             KeyboardButton('/Верхняя_одежда'),
                                                             KeyboardButton('/Штаны'),
-                                                            KeyboardButton('Отмена!'))
+                                                            KeyboardButton('/Отмена!'))
 
 CategoryButtonsClient = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False,
                                             row_width=2).add(KeyboardButton('/Обувь'),
@@ -63,7 +62,15 @@ CategoryButtonsClient = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keybo
                                                              KeyboardButton('/Акссесуары'),
                                                              KeyboardButton('/Верхняя_одежда'),
                                                              KeyboardButton('/Штаны'),
-                                                             cancel_for_client)
+                                                             KeyboardButton('Отмена!'))
+
+CategoryButtonsAdmin = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False,
+                                            row_width=2).add(KeyboardButton('/Обувь'),
+                                                             KeyboardButton('/Нижнее_белье'),
+                                                             KeyboardButton('/Акссесуары'),
+                                                             KeyboardButton('/Верхняя_одежда'),
+                                                             KeyboardButton('/Штаны'),
+                                                             KeyboardButton('/Отмена❌'))
 
 finish_load_photos = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add \
     (KeyboardButton('/Сохранить_фотки!'))

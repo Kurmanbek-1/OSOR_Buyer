@@ -4,7 +4,7 @@ import buttons
 from config import dp, bot, Developers, data_base
 
 from handlers import commands, search
-from handlers.FSM_admin import registration, delete_buers
+from handlers.FSM_admin import registration, delete_buers, all_products_admin
 from handlers.FSM_client import all_products_client, order_client, review_client
 from handlers.FSM_staff import all_products_staff, fill_products_staff
 
@@ -32,6 +32,8 @@ all_products_client.register_all_products(dp)
 
 all_products_staff.register_all_products_admins(dp)
 fill_products_staff.register_fill_products(dp)
+
+all_products_admin.register_all_products_administration(dp)
 
 # ===========================================================================
 if __name__ == '__main__':

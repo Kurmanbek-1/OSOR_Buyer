@@ -1,5 +1,5 @@
 from aiogram import Dispatcher, types
-from config import Director
+from config import Director, Admins
 from staff_config import staff
 import buttons
 
@@ -23,6 +23,10 @@ async def start(message: types.Message):
     elif message.from_user.id in staff:
         await message.answer(text=text)
         await message.answer(text='Вы сотрудник ‼️', reply_markup=buttons.StartStaff)
+
+    elif message.from_user.id in Admins:
+        await message.answer(text=text)
+        await message.answer(text='Вы Админ ‼️', reply_markup=buttons.StartAdmin)
 
     else:
         await message.answer('Приветствуем тебя в OSOR-Factory – твоем модном путеводителе в мире стиля! 🌟'

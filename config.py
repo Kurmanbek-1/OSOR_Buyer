@@ -11,7 +11,7 @@ dp = Dispatcher(bot=bot, storage=storage)
 
 
 Director = [5818455846, ]
-Admins = [6451475162, ]
+Admins = [659106628, ]
 Developers = [659106628, ]
 
 

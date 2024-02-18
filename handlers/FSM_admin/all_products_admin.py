@@ -2,33 +2,32 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from config import POSTGRES_URL, bot
+from config import POSTGRES_URL, bot, Admins
 
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 import asyncpg
 import buttons
 
-from staff_config import staff
 from db.utils import get_product_from_category, get_product_photos
 
 
 
-class all_products_admin_fsm(StatesGroup):
+class all_products_administration_fsm(StatesGroup):
     category = State()
     more_tovars = State()
 
 
 async def fsm_start(message: types.Message):
-    if message.from_user.id in staff:
-        await all_products_admin_fsm.category.set()
-        await message.answer(f"Категория товара?", reply_markup=buttons.CategoryButtonsStaff)
+    if message.from_user.id in Admins:
+        await all_products_administration_fsm.category.set()
+        await message.answer(f"Категория товара?", reply_markup=buttons.CategoryButtonsAdmin)
     else:
         await message.answer('Вы не админ!')
 
 
 async def load_category(message: types.Message, state: FSMContext):
-    if message.from_user.id in staff:
+    if message.from_user.id in Admins:
         if message.text.startswith("/"):
             category = message.text.replace("/", "")
             pool = await asyncpg.create_pool(POSTGRES_URL)
@@ -59,7 +58,7 @@ async def load_category(message: types.Message, state: FSMContext):
                         await bot.send_media_group(chat_id=message.chat.id, media=media_group)
                     await state.finish()
                     await message.answer(f"Это все товары из категории: {category}",
-                                         reply_markup=buttons.StartStaff)
+                                         reply_markup=buttons.StartAdmin)
 
                 else:
                     chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
@@ -94,9 +93,9 @@ async def load_category(message: types.Message, state: FSMContext):
                     if current_chunk < len(chunks) - 1:
                         ShowMore = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
                         ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
-                        ShowMore.add(KeyboardButton('/Отмена!'))
+                        ShowMore.add(KeyboardButton('/Отмена❌'))
                         await message.answer("Показать еще?", reply_markup=ShowMore)
-                        await all_products_admin_fsm.next()
+                        await all_products_administration_fsm.next()
             else:
                 await message.answer("В выбранной категории нет товаров")
         else:
@@ -137,13 +136,13 @@ async def load_category(message: types.Message, state: FSMContext):
                 if current_chunk < len(chunks) - 1:
                     ShowMore = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
                     ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
-                    ShowMore.add(KeyboardButton('/Отмена!'))
+                    ShowMore.add(KeyboardButton('/Отмена❌'))
                     await message.answer("Показать еще?", reply_markup=ShowMore)
-                    await all_products_admin_fsm.more_tovars.set()
+                    await all_products_administration_fsm.more_tovars.set()
                 else:
                     await state.finish()
                     await message.answer(f"Это все товары из категории: {category}",
-                                         reply_markup=buttons.StartStaff)
+                                         reply_markup=buttons.StartAdmin)
             else:
                 await message.answer("В выбранной категории нет товаров")
     else:
@@ -157,19 +156,19 @@ async def load_more(message: types.Message, state: FSMContext):
 
 
 async def cancel_reg(message: types.Message, state: FSMContext):
-    if message.from_user.id in staff:
+    if message.from_user.id in Admins:
         current_state = await state.get_state()
         if current_state is not None:
             await state.finish()
-            await message.answer('Отменено!', reply_markup=buttons.StartStaff)
+            await message.answer('Отменено!', reply_markup=buttons.StartAdmin)
     else:
         await message.answer('Вы не админ!')
 
 
-def register_all_products_admins(dp: Dispatcher):
-    dp.register_message_handler(cancel_reg, Text(equals="/Отмена!", ignore_case=True), state="*")
-    dp.register_message_handler(fsm_start, commands=["Мои_товары!", 'all_products_admins'])
-    dp.register_message_handler(load_category, state=all_products_admin_fsm.category)
+def register_all_products_administration(dp: Dispatcher):
+    dp.register_message_handler(cancel_reg, Text(equals="/Отмена❌", ignore_case=True), state="*")
+    dp.register_message_handler(fsm_start, commands=["Все_товары!", 'all_products_admin'])
+    dp.register_message_handler(load_category, state=all_products_administration_fsm.category)
     for category in ["Обувь", "Нижнее_белье", "Акссесуары", "Верхняя_одежда", "Штаны"]:
         dp.register_message_handler(load_more, Text(equals=f'Ещё из категории: {category}', ignore_case=True),
-                                    state=all_products_admin_fsm.more_tovars)
+                                    state=all_products_administration_fsm.more_tovars)
