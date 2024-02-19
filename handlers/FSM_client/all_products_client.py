@@ -37,7 +37,7 @@ async def load_category(message: types.Message, state: FSMContext):
         else:
             if message.text.startswith("/"):
                 category = message.text.replace("/", "")
-                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
+                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=1)
                 products = await get_product_from_category(pool, category)
 
                 if products:
@@ -115,7 +115,7 @@ async def load_category(message: types.Message, state: FSMContext):
                     await message.answer("В выбранной категории нет товаров")
             else:
                 category = message.text.split()[-1]
-                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
+                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=1)
                 products = await get_product_from_category(pool, category)
 
                 if products:
