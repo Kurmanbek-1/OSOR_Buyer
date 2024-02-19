@@ -30,53 +30,101 @@ async def fsm_start(message: types.Message):
 
 
 async def load_category(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    if user_id in Director or user_id in staff or user_id in Admins:
-        await message.answer("Эта кнопка для клиентов")
-    else:
-        if message.text.startswith("/"):
-            category = message.text.replace("/", "")
-            pool = await asyncpg.create_pool(POSTGRES_URL)
-            products = await get_product_from_category(pool, category)
+    try:
+        user_id = message.from_user.id
+        if user_id in Director or user_id in staff or user_id in Admins:
+            await message.answer("Эта кнопка для клиентов")
+        else:
+            if message.text.startswith("/"):
+                category = message.text.replace("/", "")
+                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
+                products = await get_product_from_category(pool, category)
 
-            if products:
-                if len(products) <= 5:
-                    for product in products:
-                        product_info = (
-                            f"Байер: {product['company_name']}\n"
-                            f"Информация: {product['info']}\n"
-                            f"Категория: {product['category']}\n"
-                            f"Артикул: {product['article']}\n"
-                            f"Количество: {product['quantity']}\n"
-                            f"Цена: {product['price']}"
-                        )
-
-                        keyboard = InlineKeyboardMarkup().add(
-                            InlineKeyboardButton(
-                                f"Заказать",
-                                callback_data=f"to_order{product['bayer_id']}"
+                if products:
+                    if len(products) <= 5:
+                        for product in products:
+                            product_info = (
+                                f"Байер: {product['company_name']}\n"
+                                f"Информация: {product['info']}\n"
+                                f"Категория: {product['category']}\n"
+                                f"Артикул: {product['article']}\n"
+                                f"Количество: {product['quantity']}\n"
+                                f"Цена: {product['price']}"
                             )
-                        )
 
-                        photos = await get_product_photos(pool, product['id'])
-                        photo_urls = [photo['photo'] for photo in photos]
-                        media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
+                            keyboard = InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    f"Заказать",
+                                    callback_data=f"to_order{product['bayer_id']}"
+                                )
+                            )
 
-                        await bot.send_media_group(chat_id=message.chat.id, media=media_group)
-                        await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
+                            photos = await get_product_photos(pool, product['id'])
+                            photo_urls = [photo['photo'] for photo in photos]
+                            media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
 
-                    await state.finish()
-                    await message.answer(f"Это все товары из категории: {category}",
-                                         reply_markup=buttons.StartClient)
-                    await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
+                            await bot.send_media_group(chat_id=message.chat.id, media=media_group)
+                            await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
+
+                        await state.finish()
+                        await message.answer(f"Это все товары из категории: {category}",
+                                             reply_markup=buttons.StartClient)
+                        await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
+                    else:
+                        chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
+                        data = await state.get_data()
+                        current_chunk = data.get("current_chunk", 0)
+                        current_products = chunks[current_chunk]
+
+                        for product in current_products:
+                            # Отправка информации о товаре
+                            product_info = (
+                                f"Байер: {product['company_name']}\n"
+                                f"Информация: {product['info']}\n"
+                                f"Категория: {product['category']}\n"
+                                f"Артикул: {product['article']}\n"
+                                f"Количество: {product['quantity']}\n"
+                                f"Цена: {product['price']}"
+                            )
+
+                            keyboard = InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    f"Заказать",
+                                    callback_data=f"to_order{product['bayer_id']}"
+                                )
+                            )
+
+                            photos = await get_product_photos(pool, product['id'])
+                            photo_urls = [photo['photo'] for photo in photos]
+                            media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
+
+                            await bot.send_media_group(chat_id=message.chat.id, media=media_group)
+                            await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
+
+                        await state.update_data(current_chunk=current_chunk + 1)
+
+                        if current_chunk < len(chunks) - 1:
+                            ShowMore = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
+                            ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
+                            ShowMore.add(KeyboardButton('Отмена!'))
+                            await message.answer("Показать еще?", reply_markup=ShowMore)
+                            await message.answer("Чтобы заказать товар, нажмите на кнопку (Отмена!), "
+                                                 "либо выведите все товары до конца!")
+                            await all_products_fsm.next()
                 else:
+                    await message.answer("В выбранной категории нет товаров")
+            else:
+                category = message.text.split()[-1]
+                pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
+                products = await get_product_from_category(pool, category)
+
+                if products:
                     chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
                     data = await state.get_data()
                     current_chunk = data.get("current_chunk", 0)
                     current_products = chunks[current_chunk]
 
                     for product in current_products:
-                        # Отправка информации о товаре
                         product_info = (
                             f"Байер: {product['company_name']}\n"
                             f"Информация: {product['info']}\n"
@@ -99,7 +147,6 @@ async def load_category(message: types.Message, state: FSMContext):
 
                         await bot.send_media_group(chat_id=message.chat.id, media=media_group)
                         await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
-
                     await state.update_data(current_chunk=current_chunk + 1)
 
                     if current_chunk < len(chunks) - 1:
@@ -109,60 +156,16 @@ async def load_category(message: types.Message, state: FSMContext):
                         await message.answer("Показать еще?", reply_markup=ShowMore)
                         await message.answer("Чтобы заказать товар, нажмите на кнопку (Отмена!), "
                                              "либо выведите все товары до конца!")
-                        await all_products_fsm.next()
-            else:
-                await message.answer("В выбранной категории нет товаров")
-        else:
-            category = message.text.split()[-1]
-            pool = await asyncpg.create_pool(POSTGRES_URL)
-            products = await get_product_from_category(pool, category)
-
-            if products:
-                chunks = [products[i:i + 5] for i in range(0, len(products), 5)]
-                data = await state.get_data()
-                current_chunk = data.get("current_chunk", 0)
-                current_products = chunks[current_chunk]
-
-                for product in current_products:
-                    product_info = (
-                        f"Байер: {product['company_name']}\n"
-                        f"Информация: {product['info']}\n"
-                        f"Категория: {product['category']}\n"
-                        f"Артикул: {product['article']}\n"
-                        f"Количество: {product['quantity']}\n"
-                        f"Цена: {product['price']}"
-                    )
-
-                    keyboard = InlineKeyboardMarkup().add(
-                        InlineKeyboardButton(
-                            f"Заказать",
-                            callback_data=f"to_order{product['bayer_id']}"
-                        )
-                    )
-
-                    photos = await get_product_photos(pool, product['id'])
-                    photo_urls = [photo['photo'] for photo in photos]
-                    media_group = [types.InputMediaPhoto(media=image) for image in photo_urls]
-
-                    await bot.send_media_group(chat_id=message.chat.id, media=media_group)
-                    await bot.send_message(chat_id=message.chat.id, text=product_info, reply_markup=keyboard)
-                await state.update_data(current_chunk=current_chunk + 1)
-
-                if current_chunk < len(chunks) - 1:
-                    ShowMore = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
-                    ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
-                    ShowMore.add(KeyboardButton('Отмена!'))
-                    await message.answer("Показать еще?", reply_markup=ShowMore)
-                    await message.answer("Чтобы заказать товар, нажмите на кнопку (Отмена!), "
-                                         "либо выведите все товары до конца!")
-                    await all_products_fsm.more_tovars.set()
+                        await all_products_fsm.more_tovars.set()
+                    else:
+                        await state.finish()
+                        await message.answer(f"Это все товары из категории: {category}",
+                                             reply_markup=buttons.StartClient)
+                        await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
                 else:
-                    await state.finish()
-                    await message.answer(f"Это все товары из категории: {category}",
-                                         reply_markup=buttons.StartClient)
-                    await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
-            else:
-                await message.answer("В выбранной категории нет товаров")
+                    await message.answer("В выбранной категории нет товаров")
+    except asyncpg.exceptions.TooManyConnectionsError:
+        print("Many connections errors")
 
 
 async def load_more(message: types.Message, state: FSMContext):
