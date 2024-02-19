@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV POSTGRES_DB "bot_osor_buyer"
 ENV POSTGRES_USER "postgres"
 ENV POSTGRES_PASSWORD "123"
-ENV POSTGRES_HOST "db_buyer"
+ENV POSTGRES_HOST "db"
 ENV POSTGRES_PORT "5432"
 
 # Команда для запуска приложения
