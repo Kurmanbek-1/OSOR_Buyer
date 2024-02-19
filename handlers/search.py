@@ -1,12 +1,9 @@
 from aiogram import types, Dispatcher
 from config import POSTGRES_URL, bot, Admins, Director, Developers
-
 from db.utils import get_product_from_article, get_product_photos
-
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
-
 import asyncpg
 from keyboards import buttons
 
@@ -17,12 +14,16 @@ class all_products_from_article_fsm(StatesGroup):
 
 async def fsm_start_search(message: types.Message):
     await all_products_from_article_fsm.article.set()
-    await message.answer("Введите артикул товара!", reply_markup=buttons.CancelSearch)
+    await message.answer("Введите артикул товара цифрами!", reply_markup=buttons.CancelSearch)
 
 
 async def search_article(message: types.Message):
     pool = await asyncpg.create_pool(POSTGRES_URL)
     article_number = message.text
+    if not article_number.isdigit():
+        await message.answer("Введите цифрами!")
+        return
+
     products = await get_product_from_article(pool, article_number)
 
     if products:
@@ -67,7 +68,13 @@ async def cancel_search(message: types.Message, state: FSMContext):
             await message.answer('Отменено!', reply_markup=buttons.StartClient)
 
 
+async def handle_photos(message: types.Message, state: FSMContext):
+    await message.reply("Извините, но я не могу принимать фотографии во время поиска товара!")
+    await cancel_search(message, state)
+
+
 def register_search(dp: Dispatcher):
     dp.register_message_handler(cancel_search, Text(equals="/Выход из поиска🚫", ignore_case=True), state="*")
     dp.register_message_handler(fsm_start_search, commands=["Поиск", 'search'])
     dp.register_message_handler(search_article, state=all_products_from_article_fsm.article)
+    dp.register_message_handler(handle_photos, content_types=types.ContentType.PHOTO, state="*")
