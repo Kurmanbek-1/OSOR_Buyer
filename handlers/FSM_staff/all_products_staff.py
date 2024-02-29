@@ -32,7 +32,7 @@ async def load_category(message: types.Message, state: FSMContext):
     if message.from_user.id in staff:
         if message.text.startswith("/"):
             category = message.text.replace("/", "")
-            pool = await asyncpg.create_pool(POSTGRES_URL)
+            pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
             products = await get_product_from_category(pool, category)
 
             if products:
@@ -53,7 +53,7 @@ async def load_category(message: types.Message, state: FSMContext):
                             keyboard = InlineKeyboardMarkup().add(
                                 InlineKeyboardButton(
                                     f"Удалить",
-                                    callback_data=f"delete_product{product['id']}"
+                                    callback_data=f"delete_product {product['info']} {product['id']}"
                                 )
                             )
 
@@ -88,7 +88,7 @@ async def load_category(message: types.Message, state: FSMContext):
                             keyboard = InlineKeyboardMarkup().add(
                                 InlineKeyboardButton(
                                     f"Удалить",
-                                    callback_data=f"delete_product{product['id']}"
+                                    callback_data=f"delete_product {product['info']} {product['id']}"
                                 )
                             )
 
@@ -106,8 +106,7 @@ async def load_category(message: types.Message, state: FSMContext):
                             ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
                             ShowMore.add(KeyboardButton('/Отмена!'))
                             await message.answer("Показать еще?", reply_markup=ShowMore)
-                            await message.answer("Чтобы удалить товар, нажмите на кнопку (/Отмена!), "
-                                                 "либо выведите все товары до конца!")
+                            await message.answer("Чтобы удалить товар нажмите на кнопку 'Удалить' под сообщением")
                             await all_products_admin_fsm.next()
                 else:
                     await message.answer("В выбранной категории нет товаров связанных с вашим телеграмм аккаунтом")
@@ -115,7 +114,7 @@ async def load_category(message: types.Message, state: FSMContext):
                 await message.answer("В выбранной категории нет товаров")
         else:
             category = message.text.split()[-1]
-            pool = await asyncpg.create_pool(POSTGRES_URL)
+            pool = await asyncpg.create_pool(POSTGRES_URL, max_inactive_connection_lifetime=3)
             products = await get_product_from_category(pool, category)
 
             if products:
@@ -137,7 +136,7 @@ async def load_category(message: types.Message, state: FSMContext):
                     keyboard = InlineKeyboardMarkup().add(
                         InlineKeyboardButton(
                             f"Удалить",
-                            callback_data=f"delete_product{product['id']}"
+                            callback_data=f"delete_product {product['info']} {product['id']}"
                         )
                     )
 
@@ -155,8 +154,7 @@ async def load_category(message: types.Message, state: FSMContext):
                     ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
                     ShowMore.add(KeyboardButton('/Отмена!'))
                     await message.answer("Показать еще?", reply_markup=ShowMore)
-                    await message.answer("Чтобы удалить товар, нажмите на кнопку (/Отмена!), "
-                                         "либо выведите все товары до конца!")
+                    await message.answer("Чтобы удалить товар нажмите на кнопку 'Удалить' под сообщением")
                     await all_products_admin_fsm.more_tovars.set()
                 else:
                     await state.finish()
@@ -170,9 +168,12 @@ async def load_category(message: types.Message, state: FSMContext):
 
 
 async def complete_delete_product(call: types.CallbackQuery):
-    product_id = call.data.replace("delete_product", "").strip()
+    product_id = call.data.split()[-1]
+    product_info = call.data.split()[-2]
+
     await delete_product(product_id)
-    await call.message.reply(text="Удалено из базы данных")
+    await call.message.reply(text=f"Товар: {product_info}\n"
+                                   f"Удалён из базы данных")
 
 
 async def load_more(message: types.Message, state: FSMContext):
@@ -200,4 +201,4 @@ def register_all_products_admins(dp: Dispatcher):
         dp.register_message_handler(load_more, Text(equals=f'Ещё из категории: {category}', ignore_case=True),
                                     state=all_products_admin_fsm.more_tovars)
     dp.register_callback_query_handler(complete_delete_product,
-                                       lambda call: call.data and call.data.startswith("delete_product"))
+                                       lambda call: call.data and call.data.startswith("delete_product"), state="*")

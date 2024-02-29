@@ -121,7 +121,7 @@ async def cancel_reg(message: types.Message, state: FSMContext):
 def register_order_for_client(dp: Dispatcher):
     dp.register_message_handler(cancel_reg, Text(equals="Отмена!", ignore_case=True), state="*")
     dp.register_callback_query_handler(fsm_start,
-                                       lambda call: call.data and call.data.startswith("to_order"))
+                                       lambda call: call.data and call.data.startswith("to_order"), state="*")
 
     dp.register_message_handler(load_size, state=FSM_order.size)
     dp.register_message_handler(load_quantity, state=FSM_order.quantity)

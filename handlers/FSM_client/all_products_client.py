@@ -107,8 +107,7 @@ async def load_category(message: types.Message, state: FSMContext):
                         ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
                         ShowMore.add(KeyboardButton('Отмена!'))
                         await message.answer("Показать еще?", reply_markup=ShowMore)
-                        await message.answer("Чтобы заказать товар, нажмите на кнопку (Отмена!), "
-                                             "либо выведите все товары до конца!")
+                        await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
                         await all_products_fsm.next()
             else:
                 await message.answer("В выбранной категории нет товаров")
@@ -153,8 +152,7 @@ async def load_category(message: types.Message, state: FSMContext):
                     ShowMore.add(KeyboardButton(f'Ещё из категории: {category}'))
                     ShowMore.add(KeyboardButton('Отмена!'))
                     await message.answer("Показать еще?", reply_markup=ShowMore)
-                    await message.answer("Чтобы заказать товар, нажмите на кнопку (Отмена!), "
-                                         "либо выведите все товары до конца!")
+                    await message.answer("Чтобы заказать товар нажмите на кнопку 'Заказать' под сообщением")
                     await all_products_fsm.more_tovars.set()
                 else:
                     await state.finish()

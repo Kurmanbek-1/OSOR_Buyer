@@ -7,11 +7,11 @@ from db.db_bayer import Database
 storage = MemoryStorage()
 TOKEN = config('TOKEN')
 bot = Bot(TOKEN)
-dp = Dispatcher(bot=bot, storage=storage)
+dp = Dispatcher(bot=bot, storage=storage, run_tasks_by_default=False)
 
 
-Director = [6451475162, ]
-Admins = [6451475162, ]
+Director = []
+Admins = []
 Developers = [659106628, ]
 
 

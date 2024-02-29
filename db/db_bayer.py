@@ -1,4 +1,5 @@
 import asyncpg
+import asyncio
 
 class Database:
     def __init__(self, dsn):
@@ -6,7 +7,12 @@ class Database:
         self.pool = None
 
     async def connect(self):
-        self.pool = await asyncpg.create_pool(self.dsn)
+        try:
+            self.pool = await asyncpg.create_pool(self.dsn)
+        except asyncpg.exceptions.TooManyConnectionsError:
+            print("Too many connections. Retrying...")
+            await asyncio.sleep(1)  # Подождать некоторое время перед повторной попыткой
+            await self.connect()    # Повторить попытку подключения
 
     async def close(self):
         await self.pool.close()
