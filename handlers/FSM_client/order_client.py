@@ -18,6 +18,7 @@ class FSM_order(StatesGroup):
 
 
 async def fsm_start(call: types.CallbackQuery, state: FSMContext):
+    await state.finish()
     if call.message.from_user.id in staff or \
        call.message.from_user.id in Director or \
        call.message.from_user.id in Admins:
